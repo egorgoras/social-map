@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Карта социальных преимуществ и барьеров</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #203047;
+      --muted: #526176;
+      --accent: #326b88;
+      --border: #cfdbe3;
+      --paper: #ffffff;
+      --background: #f3f6f9;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+
+    h1 {
+      font-size: clamp(1.7rem, 4vw, 2.5rem);
+      line-height: 1.2;
+    }
+
+    h2 { line-height: 1.3; }
+
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .note {
+      padding: 16px;
+      border-left: 4px solid var(--accent);
+      background: #edf5fa;
+      border-radius: 6px;
+    }
+
+    .muted { color: var(--muted); }
+
+    fieldset {
+      min-width: 0;
+      margin: 20px 0;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    legend {
+      padding: 0 8px;
+      font-weight: 650;
+      font-size: 1.1rem;
+    }
+
+    .question {
+      padding: 16px 0;
+      border-bottom: 1px solid #e5ebef;
+    }
+
+    .question:last-child { border-bottom: 0; }
+
+    .question-title {
+      margin: 0 0 12px;
+      font-weight: 550;
+    }
+
+    .answers {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .choice {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+    }
+
+    .choice:has(input:checked) {
+      background: #e1f0f8;
+      border-color: var(--accent);
+    }
+
+    input[type="radio"] {
+      margin-top: 5px;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .skip {
+      display: inline-flex;
+      gap: 8px;
+      margin-top: 12px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 13px 20px;
+      font: inherit;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+    }
+
+    button.secondary {
+      background: #e7edf2;
+      color: var(--ink);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid #b16a00;
+      outline-offset: 3px;
+    }
+
+    .progress {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      padding: 10px 16px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 620px;
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    th { background: #f1f5f8; }
+
+    [hidden] { display: none !important; }
+
+    @media (max-width: 680px) {
+      .card { padding: 16px; }
+      fieldset { padding: 12px; }
+      .answers { grid-template-columns: 1fr; }
+      .choice { font-size: 0.96rem; }
+      .chart-wrap { height: 470px; }
+    }
+
+    @media print {
+      body { background: white; }
+      #intro, #survey, .progress, .actions { display: none; }
+      .card { border: 0; padding: 0; }
+      .chart-wrap { height: 550px; }
+    }
+  </style>
+</head>
+
+<body>
+<main>
+  <header id="intro" class="card">
+    <h1>Карта социальных преимуществ и барьеров</h1>
+
+    <p>
+      Опросник для размышления о том, какие ресурсы и барьеры
+      присутствуют в разных сферах вашей жизни.
+    </p>
+
+    <p>
+      Отвечайте применительно к стране и среде, где вы сейчас
+      живёте. Учитывайте преимущественно последние 12 месяцев.
+      Здесь нет правильных и неправильных ответов.
+    </p>
+
+    <div class="note">
+      <p>
+        0 — утверждение совсем не соответствует вашей ситуации.<br>
+        4 — полностью соответствует.
+      </p>
+      <p>
+        Чем выше результат, тем благоприятнее условия
+        в соответствующей сфере.
+      </p>
+      <p>
+        Любой вопрос можно пропустить. Пропуск не считается нулём.
+      </p>
+    </div>
+
+    <p class="muted">
+      Это авторский учебный инструмент, а не диагностический тест.
+      Он не оценивает ценность человека и не определяет,
+      чьи переживания важнее.
+    </p>
+
+    <p class="muted">
+      Ответы обрабатываются в вашем браузере и не отправляются
+      в базу ответов. После перезагрузки страницы они исчезнут.
+      Сайт и библиотека диаграмм загружаются через интернет.
+    </p>
+  </header>
+
+  <div class="progress" id="progress" aria-live="polite">
+    Ответов: 0 из 36
+  </div>
+
+  <form id="survey">
+    <div id="questions"></div>
+
+    <div class="card">
+      <p>
+        Для расчёта каждой шкалы нужны минимум два ответа
+        на три вопроса. Можно получить результат
+        и с незаполненными шкалами.
+      </p>
+
+      <div class="actions">
+        <button type="submit">Показать результат</button>
+        <button type="button" class="secondary" id="clear">
+          Очистить ответы
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <section id="result" class="card" hidden aria-labelledby="result-title">
+    <h2 id="result-title" tabindex="-1">Ваш профиль</h2>
+
+    <p>
+      Центр — 0, внешний край — 4. Чем дальше точка от центра,
+      тем больше доступных преимуществ и меньше барьеров
+      по ответам на вопросы соответствующей шкалы.
+    </p>
+
+    <p id="summary" class="note" aria-live="polite"></p>
+    <p id="chart-error" class="note" hidden></p>
+
+    <div class="chart-wrap" id="chart-wrap">
+      <canvas
+        id="radar"
+        role="img"
+        aria-label="Радарная диаграмма по 12 шкалам.
+        Числовые результаты приведены в таблице ниже."
+      ></canvas>
+    </div>
+
+    <p class="muted">
+      Если для шкалы недостаточно ответов, её точка
+      не отображается. Линия в этом месте разрывается,
+      а сплошная заливка всей фигуры отключается:
+      отсутствие данных не означает нулевой результат.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Шкала</th>
+            <th scope="col">Результат, 0–4</th>
+            <th scope="col">Ответов</th>
+          </tr>
+        </thead>
+        <tbody id="scores"></tbody>
+      </table>
+    </div>
+
+    <p class="note">
+      Это профиль отдельных сфер, а не общий балл
+      «привилегированности». Размер и площадь фигуры
+      не используются для ранжирования людей.
+      Учитывайте контекст: похожие баллы могут отражать
+      разные жизненные обстоятельства.
+    </p>
+
+    <div class="actions">
+      <button type="button" id="download">
+        Сохранить диаграмму PNG
+      </button>
+      <button type="button" class="secondary" id="back">
+        Изменить ответы
+      </button>
+      <button type="button" class="secondary" id="print">
+        Печать / PDF
+      </button>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+/* Редактируйте названия шкал и вопросы в этом массиве. */
+const scales = [
+  {
+    name: "Материальные ресурсы",
+    chartLabel: ["Материальные", "ресурсы"],
+    questions: [
+      "Мне хватает средств на основные повседневные потребности.",
+      "Я могу справиться с непредвиденными необходимыми расходами.",
+      "Моё финансовое положение позволяет мне планировать ближайшее будущее."
+    ]
+  },
+  {
+    name: "Жилищная стабильность",
+    chartLabel: ["Жилищная", "стабильность"],
+    questions: [
+      "Моё жильё безопасно и подходит для повседневной жизни.",
+      "Я могу рассчитывать, что в ближайшие месяцы мне будет где жить.",
+      "В моём жилье достаточно условий для сна, отдыха и личного пространства."
+    ]
+  },
+  {
+    name: "Образование",
+    chartLabel: ["Образование"],
+    questions: [
+      "У меня была возможность получить необходимое мне образование.",
+      "Сейчас я могу получать нужные знания и навыки без серьёзных препятствий.",
+      "Мои знания и квалификация признаются там, где мне важно их использовать."
+    ]
+  },
+  {
+    name: "Работа и условия труда",
+    chartLabel: ["Работа и", "условия труда"],
+    questions: [
+      "Если мне нужна оплачиваемая работа, у меня есть реальная возможность её найти.",
+      "Мне доступна работа с безопасными и приемлемыми условиями.",
+      "Я могу рассчитывать на соблюдение моих трудовых прав."
+    ]
+  },
+  {
+    name: "Правовой статус",
+    chartLabel: ["Правовой", "статус"],
+    questions: [
+      "Моё право жить в стране проживания устойчиво и понятно мне.",
+      "Мой правовой статус позволяет мне работать или учиться, когда это необходимо.",
+      "Я могу получать необходимые документы и обращаться за правовой защитой."
+    ]
+  },
+  {
+    name: "Язык и коммуникация",
+    chartLabel: ["Язык и", "коммуникация"],
+    questions: [
+      "Я могу объясниться на языке, необходимом для решения повседневных задач.",
+      "Я понимаю важную информацию от врачей, учреждений и других служб — самостоятельно или с доступной помощью.",
+      "Языковые различия не мешают мне участвовать в значимых для меня занятиях и общении."
+    ]
+  },
+  {
+    name: "Этничность и расовое восприятие",
+    chartLabel: ["Этничность и", "расовое восприятие"],
+    questions: [
+      "Моё происхождение, имя, внешность или акцент не создают для меня дополнительных препятствий в повседневной жизни.",
+      "При поиске работы, жилья или услуг ко мне относятся справедливо независимо от моего предполагаемого происхождения.",
+      "Я могу открыто говорить о своём происхождении, не опасаясь враждебного отношения."
+    ]
+  },
+  {
+    name: "Гендер",
+    chartLabel: ["Гендер"],
+    questions: [
+      "Мой пол, гендерная идентичность или гендерное выражение не ограничивают мои возможности учиться и работать.",
+      "Я могу выражать себя в одежде и поведении без опасений за свою безопасность из-за гендерных ожиданий окружающих.",
+      "В значимых для меня ситуациях к моему мнению относятся серьёзно независимо от моего пола или гендера."
+    ]
+  },
+  {
+    name: "Сексуальная ориентация",
+    chartLabel: ["Сексуальная", "ориентация"],
+    questions: [
+      "Я могу безопасно говорить о своей сексуальной ориентации, если захочу.",
+      "Я могу рассказывать о личной жизни, симпатиях или отношениях, не опасаясь дискриминации из-за своей ориентации.",
+      "Моя сексуальная ориентация не ограничивает мой доступ к работе, жилью и услугам."
+    ]
+  },
+  {
+    name: "Здоровье и доступность среды",
+    chartLabel: ["Здоровье и", "доступность среды"],
+    questions: [
+      "С учётом моего здоровья и доступной поддержки я могу заниматься важными для меня повседневными делами.",
+      "Нужные мне места, транспорт и цифровые сервисы доступны с учётом моих особенностей и потребностей.",
+      "При необходимости я могу получить подходящую медицинскую помощь и поддержку."
+    ]
+  },
+  {
+    name: "Возраст",
+    chartLabel: ["Возраст"],
+    questions: [
+      "Мой возраст не создаёт для меня серьёзных препятствий при поиске работы или возможностей обучения.",
+      "К моему мнению относятся серьёзно независимо от моего возраста.",
+      "Мне доступны важные для меня услуги и занятия независимо от возрастных ожиданий окружающих."
+    ]
+  },
+  {
+    name: "Социальная поддержка",
+    chartLabel: ["Социальная", "поддержка"],
+    questions: [
+      "У меня есть человек, к которому я могу обратиться за эмоциональной поддержкой.",
+      "В сложной ситуации я могу рассчитывать на практическую помощь других людей.",
+      "У меня есть круг общения или сообщество, где я чувствую принятие и принадлежность."
+    ]
+  }
+];
+
+const options = [
+  "Совсем не соответствует",
+  "Скорее не соответствует",
+  "Отчасти соответствует",
+  "Скорее соответствует",
+  "Полностью соответствует"
+];
+
+const form = document.getElementById("survey");
+const questionsBox = document.getElementById("questions");
+const result = document.getElementById("result");
+const progress = document.getElementById("progress");
+let radarChart = null;
+let submitted = false;
+
+function makeRadio(name, value, text, className) {
+  const label = document.createElement("label");
+  label.className = className;
+
+  const input = document.createElement("input");
+  input.type = "radio";
+  input.name = name;
+  input.value = value;
+
+  const span = document.createElement("span");
+  span.textContent = text;
+
+  label.append(input, span);
+  return label;
+}
+
+function buildQuestions() {
+  scales.forEach((scale, scaleIndex) => {
+    const fieldset = document.createElement("fieldset");
+    const legend = document.createElement("legend");
+    legend.textContent = `${scaleIndex + 1}. ${scale.name}`;
+    fieldset.append(legend);
+
+    scale.questions.forEach((text, questionIndex) => {
+      const question = document.createElement("div");
+      question.className = "question";
+      question.setAttribute("role", "group");
+
+      const title = document.createElement("p");
+      title.className = "question-title";
+      title.id = `title-${scaleIndex}-${questionIndex}`;
+      title.textContent = text;
+      question.setAttribute("aria-labelledby", title.id);
+
+      const answers = document.createElement("div");
+      answers.className = "answers";
+
+      const name = `q-${scaleIndex}-${questionIndex}`;
+
+      options.forEach((option, value) => {
+        answers.append(
+          makeRadio(name, String(value), `${value} — ${option}`, "choice")
+        );
+      });
+
+      question.append(
+        title,
+        answers,
+        makeRadio(name, "skip", "Пропустить / не применимо", "skip")
+      );
+
+      fieldset.append(question);
+    });
+
+    questionsBox.append(fieldset);
+  });
+}
+
+function updateProgress() {
+  let answered = 0;
+  let skipped = 0;
+
+  form.querySelectorAll('input[type="radio"]:checked').forEach(input => {
+    if (input.value === "skip") skipped++;
+    else answered++;
+  });
+
+  progress.textContent =
+    `Ответов: ${answered} из 36. Пропущено: ${skipped}.`;
+}
+
+function calculateScores() {
+  return scales.map((scale, scaleIndex) => {
+    const values = [];
+
+    scale.questions.forEach((_, questionIndex) => {
+      const selected = form.querySelector(
+        `input[name="q-${scaleIndex}-${questionIndex}"]:checked`
+      );
+
+      if (selected && selected.value !== "skip") {
+        values.push(Number(selected.value));
+      }
+    });
+
+    return {
+      count: values.length,
+      value: values.length >= 2
+        ? values.reduce((sum, value) => sum + value, 0) / values.length
+        : null
+    };
+  });
+}
+
+function fillTable(scores) {
+  const body = document.getElementById("scores");
+  body.replaceChildren();
+
+  scores.forEach((score, index) => {
+    const row = document.createElement("tr");
+
+    const name = document.createElement("th");
+    name.scope = "row";
+    name.textContent = scales[index].name;
+
+    const value = document.createElement("td");
+    value.textContent = score.value === null
+      ? "Недостаточно ответов"
+      : score.value.toLocaleString("ru-RU", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+
+    const count = document.createElement("td");
+    count.textContent = `${score.count} из 3`;
+
+    row.append(name, value, count);
+    body.append(row);
+  });
+}
+
+const whiteBackground = {
+  id: "whiteBackground",
+  beforeDraw(chart) {
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, chart.width, chart.height);
+    ctx.restore();
+  }
+};
+
+function drawChart(scores) {
+  const error = document.getElementById("chart-error");
+  const wrap = document.getElementById("chart-wrap");
+  const download = document.getElementById("download");
+  error.hidden = true;
+
+  if (typeof Chart === "undefined") {
+    wrap.hidden = true;
+    download.disabled = true;
+    error.textContent =
+      "Не удалось загрузить Chart.js. Проверьте интернет " +
+      "и блокировщики содержимого, затем обновите страницу. " +
+      "Числовые результаты доступны в таблице ниже.";
+    error.hidden = false;
+    return;
+  }
+
+  wrap.hidden = false;
+  const complete = scores.every(score => score.value !== null);
+  const available = scores.filter(score => score.value !== null).length;
+  download.disabled = available === 0;
+
+  if (radarChart) radarChart.destroy();
+
+  const smallScreen = window.innerWidth < 680;
+
+  radarChart = new Chart(document.getElementById("radar"), {
+    type: "radar",
+
+    data: {
+      labels: scales.map(scale => scale.chartLabel),
+      datasets: [{
+        label: "Ваш профиль",
+        data: scores.map(score => score.value),
+        fill: complete,
+        spanGaps: false,
+        backgroundColor: "rgba(50, 107, 136, 0.23)",
+        borderColor: "#326b88",
+        borderWidth: 2,
+        pointBackgroundColor: "#326b88",
+        pointBorderColor: "#ffffff",
+        pointBorderWidth: 1,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0
+      }]
+    },
+
+    plugins: [whiteBackground],
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+
+      layout: {
+        padding: smallScreen ? 0 : 16
+      },
+
+      scales: {
+        r: {
+          min: 0,
+          max: 4,
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1,
+            color: "#526176",
+            backdropColor: "rgba(255,255,255,0.85)",
+            font: { size: 11 }
+          },
+          grid: {
+            color: "#cfdbe3"
+          },
+          angleLines: {
+            color: "#cfdbe3"
+          },
+          pointLabels: {
+            color: "#203047",
+            font: {
+              size: smallScreen ? 9 : 12
+            },
+            padding: smallScreen ? 5 : 12
+          }
+        }
+      },
+
+      plugins: {
+        legend: {
+          display: false
+        },
+        title: {
+          display: true,
+          text: "Карта социальных преимуществ и барьеров",
+          color: "#203047",
+          font: {
+            size: smallScreen ? 12 : 17
+          },
+          padding: {
+            top: 8,
+            bottom: 20
+          }
+        },
+        tooltip: {
+          callbacks: {
+            title(items) {
+              return scales[items[0].dataIndex].name;
+            },
+            label(context) {
+              return "Результат: " +
+                Number(context.raw).toLocaleString("ru-RU", {
+                  maximumFractionDigits: 2
+                }) + " из 4";
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+form.addEventListener("change", () => {
+  updateProgress();
+
+  if (submitted) {
+    result.hidden = true;
+    submitted = false;
+  }
+});
+
+form.addEventListener("submit", event => {
+  event.preventDefault();
+
+  const scores = calculateScores();
+  const available = scores.filter(score => score.value !== null).length;
+
+  document.getElementById("summary").textContent =
+    available === 12
+      ? "Рассчитаны все 12 шкал. Для некоторых шкал результат " +
+        "может быть основан на двух ответах — см. таблицу."
+      : `Рассчитано шкал: ${available} из 12. ` +
+        "Для остальных нужно ответить минимум на два вопроса " +
+        "соответствующего раздела. Пропуски не считаются нулями.";
+
+  fillTable(scores);
+  result.hidden = false;
+  submitted = true;
+  drawChart(scores);
+
+  document.getElementById("result-title").focus({
+    preventScroll: true
+  });
+  result.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+});
+
+document.getElementById("download").addEventListener("click", () => {
+  if (!radarChart) return;
+
+  const link = document.createElement("a");
+  link.download = "social-map.png";
+  link.href = radarChart.toBase64Image("image/png", 1);
+  link.click();
+});
+
+document.getElementById("back").addEventListener("click", () => {
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+document.getElementById("print").addEventListener("click", () => {
+  window.print();
+});
+
+document.getElementById("clear").addEventListener("click", () => {
+  if (!window.confirm("Удалить все выбранные ответы?")) return;
+
+  form.reset();
+  result.hidden = true;
+  submitted = false;
+
+  if (radarChart) {
+    radarChart.destroy();
+    radarChart = null;
+  }
+
+  updateProgress();
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+buildQuestions();
+updateProgress();
+</script>
+</body>
+</html>
